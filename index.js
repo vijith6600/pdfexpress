@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const multer = require('multer');
 const { PDFDocument } = require('pdf-lib');
@@ -8,28 +7,43 @@ const cors = require('cors');
 const app = express();
 const port = 3001;
 
-
 app.use(cors());
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const fileBuffer = req.file.buffer;
     const filename = `${Date.now()}.pdf`;
+    const uploadFolderPath = './uploads/';
 
-    await fs.writeFile(`./uploads/${filename}`, fileBuffer);
-    
-    res.json({ filename });
+    // Clear the existing files in the upload folder
+    await clearUploadFolder(uploadFolderPath);
+
+    // Write the new file to the server's 'uploads' directory
+    await fs.writeFile(`${uploadFolderPath}${filename}`, fileBuffer);
+
+    // Determine the number of pages in the uploaded PDF (you may adjust this based on your server's logic)
+    const pdfDoc = await PDFDocument.load(fileBuffer);
+    const numPages = pdfDoc.getPageCount();
+
+    res.json({ filename, numPages });
   } catch (err) {
     console.error('File upload error:', err.message);
     res.status(500).send('Internal Server Error');
   }
 });
 
+// Function to clear the contents of the upload folder
+const clearUploadFolder = async (folderPath) => {
+  const files = await fs.readdir(folderPath);
 
+  for (const file of files) {
+    const filePath = `${folderPath}${file}`;
+    await fs.unlink(filePath); // Delete each file in the folder
+  }
+};
 
 
 
@@ -63,7 +77,6 @@ app.post('/extract', express.json(), async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
 
 
 app.listen(port, () => {
