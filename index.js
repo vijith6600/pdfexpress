@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const cors = require('cors');
 
 const app = express();
-const port = 3001;
+const port = process.env.port || 3001;
 
 app.use(cors());
 
